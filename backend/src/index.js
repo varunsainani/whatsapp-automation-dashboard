@@ -8,6 +8,8 @@ const routes = require("./routes");
 const { sequelize } = require("./models");
 const { initSocket } = require("./socket");
 const seedAdmin = require("./seed/admin");
+const seedFlow = require("./seed/flow");
+const { initWhatsApp } = require("./whatsapp/baileys");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,10 +35,21 @@ async function start() {
     console.log("Database models synchronized");
 
     await seedAdmin();
+    await seedFlow();
 
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
     });
+
+    if (process.env.WHATSAPP_ENABLED !== "false") {
+      try {
+        await initWhatsApp({ io });
+      } catch (err) {
+        console.error("WhatsApp initialization failed (server still running):", err);
+      }
+    } else {
+      console.log("WhatsApp disabled (WHATSAPP_ENABLED=false)");
+    }
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

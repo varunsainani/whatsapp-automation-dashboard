@@ -24,6 +24,11 @@ module.exports = (sequelize, DataTypes) =>
         type: DataTypes.STRING,
         allowNull: true
       },
+      collected: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {}
+      },
       started_at: {
         type: DataTypes.DATE,
         allowNull: false,

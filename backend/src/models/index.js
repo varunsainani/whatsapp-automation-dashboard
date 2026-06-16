@@ -16,7 +16,9 @@ const Template = require("./Template")(sequelize, DataTypes);
 const QuickReply = require("./QuickReply")(sequelize, DataTypes);
 
 Contact.hasMany(Conversation, { foreignKey: "contact_id" });
+Conversation.belongsTo(Contact, { foreignKey: "contact_id" });
 Conversation.hasMany(Message, { foreignKey: "conversation_id" });
+Message.belongsTo(Conversation, { foreignKey: "conversation_id" });
 
 module.exports = {
   sequelize,

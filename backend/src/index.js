@@ -10,7 +10,8 @@ const { sequelize } = require("./models");
 const { initSocket } = require("./socket");
 const seedAdmin = require("./seed/admin");
 const seedFlow = require("./seed/flow");
-const { initWhatsApp } = require("./whatsapp/baileys");
+const seedSample = require("./seed/sample");
+const whatsapp = require("./whatsapp/baileys");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,8 @@ app.use(errorHandler);
 const server = http.createServer(app);
 const io = initSocket(server);
 app.set("io", io);
+// Expose the WhatsApp controller so routes can send messages / read status.
+app.set("whatsapp", whatsapp);
 
 async function start() {
   try {
@@ -40,6 +43,7 @@ async function start() {
 
     await seedAdmin();
     await seedFlow();
+    await seedSample();
 
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
@@ -47,7 +51,7 @@ async function start() {
 
     if (process.env.WHATSAPP_ENABLED !== "false") {
       try {
-        await initWhatsApp({ io });
+        await whatsapp.initWhatsApp({ io });
       } catch (err) {
         console.error("WhatsApp initialization failed (server still running):", err);
       }

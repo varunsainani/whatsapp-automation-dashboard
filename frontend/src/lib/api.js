@@ -24,6 +24,14 @@ export function logout() {
   if (typeof window !== "undefined") window.location.href = "/login";
 }
 
+function qs(params) {
+  const entries = Object.entries(params || {}).filter(
+    ([, v]) => v !== undefined && v !== null && v !== ""
+  );
+  if (entries.length === 0) return "";
+  return "?" + new URLSearchParams(entries).toString();
+}
+
 async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth) {
@@ -67,15 +75,47 @@ export async function login(email, password) {
   return json;
 }
 
-// --- conversations ---
-export const getConversations = () =>
-  apiFetch("/api/conversations").then((r) => r.data);
+// --- stats ---
+export const getStats = () => apiFetch("/api/stats").then((r) => r.data);
+
+// --- conversations --- (list returns { data, pagination })
+export const getConversations = (params) =>
+  apiFetch(`/api/conversations${qs(params)}`);
 export const getConversation = (id) =>
   apiFetch(`/api/conversations/${id}`).then((r) => r.data);
-export const updateConversationStatus = (id, status) =>
-  apiFetch(`/api/conversations/${id}`, { method: "PATCH", body: { status } }).then(
+export const updateConversation = (id, patch) =>
+  apiFetch(`/api/conversations/${id}`, { method: "PATCH", body: patch }).then(
     (r) => r.data
   );
+export const sendReply = (id, body) =>
+  apiFetch(`/api/conversations/${id}/reply`, {
+    method: "POST",
+    body: { body }
+  }).then((r) => r.data);
+
+// --- contacts / leads --- (list returns { data, pagination })
+export const getContacts = (params) => apiFetch(`/api/contacts${qs(params)}`);
+
+export async function downloadLeadsCsv() {
+  const token = getToken();
+  const res = await fetch(`${BASE}/api/contacts/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!res.ok) throw new Error("Export failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "leads.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+// --- whatsapp ---
+export const getWhatsAppStatus = () =>
+  apiFetch("/api/whatsapp/status").then((r) => r.data);
 
 // --- templates ---
 export const getTemplates = () => apiFetch("/api/templates").then((r) => r.data);

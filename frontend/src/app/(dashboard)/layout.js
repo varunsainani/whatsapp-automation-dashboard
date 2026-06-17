@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getToken, logout } from "@/lib/api";
+import ConnectionStatus from "@/components/ConnectionStatus";
 
 const NAV = [
+  { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/conversations", label: "Conversations", icon: "💬" },
+  { href: "/leads", label: "Leads", icon: "👥" },
   { href: "/templates", label: "Templates", icon: "📝" },
   { href: "/quick-replies", label: "Quick Replies", icon: "⚡" },
   { href: "/flows", label: "Flows", icon: "🔀" }
@@ -33,8 +36,10 @@ export default function DashboardLayout({ children }) {
     );
   }
 
+  const current = NAV.find((item) => pathname?.startsWith(item.href));
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <aside className="flex w-60 flex-col bg-brand-darker text-white">
         <div className="flex items-center gap-2 px-5 py-5 text-lg font-semibold">
           <span>💬</span>
@@ -65,7 +70,13 @@ export default function DashboardLayout({ children }) {
         </button>
       </aside>
 
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+          <h1 className="text-lg font-semibold">{current?.label || "Dashboard"}</h1>
+          <ConnectionStatus />
+        </header>
+        <main className="flex-1 overflow-hidden">{children}</main>
+      </div>
     </div>
   );
 }

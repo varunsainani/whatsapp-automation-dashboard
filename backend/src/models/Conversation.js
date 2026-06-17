@@ -24,6 +24,11 @@ module.exports = (sequelize, DataTypes) =>
         type: DataTypes.STRING,
         allowNull: true
       },
+      bot_enabled: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
+      },
       collected: {
         type: DataTypes.JSONB,
         allowNull: false,

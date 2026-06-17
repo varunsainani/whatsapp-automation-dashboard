@@ -6,13 +6,20 @@ everything from a web panel — no code changes required.
 
 ## Features
 
+- 📊 **Analytics dashboard** — total leads, active chats, message volume,
+  completion rate, a 7-day message chart and status breakdowns.
 - 🤖 **Automated conversation flow** — greeting, step-by-step data collection,
   and a closing summary, all driven by a flow stored in the database.
 - 🧩 **Visual flow editor** — build the bot's script from `say` / `ask` steps,
   reorder them, and activate a flow without touching code.
 - 💬 **Live conversation log** — every inbound and outbound message streams to
   the admin panel in real time over Socket.IO.
+- ✋ **Human handoff & live reply** — pause the bot per conversation, reply to a
+  contact manually from the panel, and fire quick replies into the chat.
+- 👥 **Leads / CRM** — every contact with their collected data, searchable, with
+  one-click CSV export.
 - 📝 **Templates & quick replies** — manage reusable canned messages.
+- 🟢 **Live connection status** — see whether the WhatsApp client is connected.
 - 🔐 **JWT-protected admin API** — login-gated REST endpoints.
 
 ## Tech stack
@@ -67,9 +74,14 @@ All routes except `POST /api/auth/login` require a `Bearer <token>` header.
 | Method                | Path                          | Purpose                       |
 | --------------------- | ----------------------------- | ----------------------------- |
 | POST                  | `/api/auth/login`             | Obtain a JWT                  |
-| GET                   | `/api/conversations`          | List conversations            |
-| GET / PATCH           | `/api/conversations/:id`      | Detail / update status        |
+| GET                   | `/api/stats`                  | Dashboard metrics + 7-day series |
+| GET                   | `/api/conversations`          | List (search / status / page) |
+| GET / PATCH           | `/api/conversations/:id`      | Detail / status + bot toggle  |
+| POST                  | `/api/conversations/:id/reply`| Send a manual agent reply     |
+| GET                   | `/api/contacts`               | Leads with collected data     |
+| GET                   | `/api/contacts/export`        | Export leads as CSV           |
 | GET POST PUT DELETE   | `/api/templates`              | Manage message templates      |
 | GET POST PUT DELETE   | `/api/quick-replies`          | Manage quick replies          |
 | GET POST PUT DELETE   | `/api/flows`                  | Manage flows                  |
 | POST                  | `/api/flows/:id/activate`     | Make a flow the active one    |
+| GET                   | `/api/whatsapp/status`        | WhatsApp connection status    |

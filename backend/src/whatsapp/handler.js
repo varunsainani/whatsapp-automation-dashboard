@@ -61,6 +61,21 @@ async function handleIncomingMessage({ from, text, sendText, io }) {
   });
   emit(io, "message:new", serializeMessage(inbound, contact));
 
+  // 3b. Human takeover: when the bot is disabled for this conversation we only
+  // record the message and let an agent reply manually from the admin panel.
+  if (conversation.bot_enabled === false) {
+    conversation.updated_at = new Date();
+    await conversation.save();
+    emit(io, "conversation:update", {
+      id: conversation.id,
+      status: conversation.status,
+      bot_enabled: conversation.bot_enabled,
+      current_step: conversation.current_step,
+      collected: conversation.collected
+    });
+    return { conversation, contact, flow: null, botHandled: false };
+  }
+
   // 4. Load the active flow. Without one, we simply record the message.
   const flow = await Flow.findOne({
     where: { is_active: true },
@@ -88,6 +103,7 @@ async function handleIncomingMessage({ from, text, sendText, io }) {
   emit(io, "conversation:update", {
     id: conversation.id,
     status: conversation.status,
+    bot_enabled: conversation.bot_enabled,
     current_step: conversation.current_step,
     collected: conversation.collected
   });

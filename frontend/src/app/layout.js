@@ -1,4 +1,5 @@
 import "./globals.css";
+import { UIProvider } from "@/components/ui";
 
 export const metadata = {
   title: "WhatsApp Automation Dashboard",
@@ -9,7 +10,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-slate-100 text-slate-900 antialiased">
-        {children}
+        <UIProvider>{children}</UIProvider>
       </body>
     </html>
   );

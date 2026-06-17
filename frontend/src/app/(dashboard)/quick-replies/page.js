@@ -7,8 +7,10 @@ import {
   updateQuickReply,
   deleteQuickReply
 } from "@/lib/api";
+import { useUI } from "@/components/ui";
 
 export default function QuickRepliesPage() {
+  const { toast, confirm } = useUI();
   const [items, setItems] = useState([]);
   const [editing, setEditing] = useState(null);
   const [label, setLabel] = useState("");
@@ -48,27 +50,37 @@ export default function QuickRepliesPage() {
     setError("");
     setSaving(true);
     try {
+      const wasEditing = Boolean(editing);
       const body = { label, response_text: responseText };
       if (editing) await updateQuickReply(editing.id, body);
       else await createQuickReply(body);
       reset();
       await load();
+      toast(wasEditing ? "Quick reply updated" : "Quick reply created", "success");
     } catch (err) {
       setError(err.message);
+      toast(err.message, "error");
     } finally {
       setSaving(false);
     }
   }
 
   async function onDelete(id) {
-    if (!window.confirm("Delete this quick reply?")) return;
+    const ok = await confirm({
+      title: "Delete quick reply?",
+      message: "This action cannot be undone.",
+      danger: true,
+      confirmLabel: "Delete"
+    });
+    if (!ok) return;
     await deleteQuickReply(id);
     if (editing?.id === id) reset();
     await load();
+    toast("Quick reply deleted", "success");
   }
 
   return (
-    <div className="h-screen overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-8">
       <h2 className="mb-1 text-2xl font-semibold">Quick Replies</h2>
       <p className="mb-6 text-sm text-slate-500">
         Short labelled responses agents can fire with one tap.

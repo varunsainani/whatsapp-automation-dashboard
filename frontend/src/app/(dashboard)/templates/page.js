@@ -7,8 +7,10 @@ import {
   updateTemplate,
   deleteTemplate
 } from "@/lib/api";
+import { useUI } from "@/components/ui";
 
 export default function TemplatesPage() {
+  const { toast, confirm } = useUI();
   const [items, setItems] = useState([]);
   const [editing, setEditing] = useState(null);
   const [name, setName] = useState("");
@@ -48,26 +50,36 @@ export default function TemplatesPage() {
     setError("");
     setSaving(true);
     try {
+      const wasEditing = Boolean(editing);
       if (editing) await updateTemplate(editing.id, { name, body });
       else await createTemplate({ name, body });
       reset();
       await load();
+      toast(wasEditing ? "Template updated" : "Template created", "success");
     } catch (err) {
       setError(err.message);
+      toast(err.message, "error");
     } finally {
       setSaving(false);
     }
   }
 
   async function onDelete(id) {
-    if (!window.confirm("Delete this template?")) return;
+    const ok = await confirm({
+      title: "Delete template?",
+      message: "This action cannot be undone.",
+      danger: true,
+      confirmLabel: "Delete"
+    });
+    if (!ok) return;
     await deleteTemplate(id);
     if (editing?.id === id) reset();
     await load();
+    toast("Template deleted", "success");
   }
 
   return (
-    <div className="h-screen overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-8">
       <h2 className="mb-1 text-2xl font-semibold">Message Templates</h2>
       <p className="mb-6 text-sm text-slate-500">
         Reusable canned messages. Use <code>{"{name}"}</code>-style placeholders if

@@ -8,10 +8,12 @@ import {
   activateFlow,
   deleteFlow
 } from "@/lib/api";
+import { useUI } from "@/components/ui";
 
 const emptyStep = (type = "say") => ({ type, text: "", key: "" });
 
 export default function FlowsPage() {
+  const { toast, confirm } = useUI();
   const [flows, setFlows] = useState([]);
   const [editing, setEditing] = useState(null); // null = creating a new flow
   const [name, setName] = useState("");
@@ -89,6 +91,7 @@ export default function FlowsPage() {
     setError("");
     setSaving(true);
     try {
+      const wasEditing = Boolean(editing);
       const payload = { name, steps: buildSteps() };
       if (editing) {
         await updateFlow(editing.id, payload);
@@ -97,8 +100,10 @@ export default function FlowsPage() {
         startNew();
       }
       await load();
+      toast(wasEditing ? "Flow updated" : "Flow created", "success");
     } catch (err) {
       setError(err.message);
+      toast(err.message, "error");
     } finally {
       setSaving(false);
     }
@@ -107,17 +112,25 @@ export default function FlowsPage() {
   async function onActivate(id) {
     await activateFlow(id);
     await load();
+    toast("Flow activated", "success");
   }
 
   async function onDelete(id) {
-    if (!window.confirm("Delete this flow?")) return;
+    const ok = await confirm({
+      title: "Delete flow?",
+      message: "This action cannot be undone.",
+      danger: true,
+      confirmLabel: "Delete"
+    });
+    if (!ok) return;
     await deleteFlow(id);
     if (editing?.id === id) startNew();
     await load();
+    toast("Flow deleted", "success");
   }
 
   return (
-    <div className="h-screen overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold">Conversation Flows</h2>

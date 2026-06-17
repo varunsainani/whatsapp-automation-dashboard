@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (getToken()) router.replace("/conversations");
+    if (getToken()) router.replace("/dashboard");
   }, [router]);
 
   async function onSubmit(event) {
@@ -21,7 +21,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.replace("/conversations");
+      router.replace("/dashboard");
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {

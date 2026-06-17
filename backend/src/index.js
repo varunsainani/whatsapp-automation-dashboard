@@ -15,8 +15,11 @@ const whatsapp = require("./whatsapp/baileys");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Lock CORS to the deployed frontend in production via CORS_ORIGIN; defaults to
+// "*" for local development.
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
-app.use(cors());
+app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 app.use(routes);
 

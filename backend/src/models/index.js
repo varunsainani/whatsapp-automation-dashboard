@@ -2,9 +2,17 @@ const { DataTypes, Sequelize } = require("sequelize");
 
 const databaseUrl = process.env.DATABASE_URL;
 
+// Managed Postgres providers reached over the public internet (Neon, Supabase,
+// Render external URLs) require SSL. Enable it with DB_SSL=true; Render's
+// internal connection string does not need it, so it defaults off.
+const useSsl = process.env.DB_SSL === "true";
+
 const sequelize = new Sequelize(databaseUrl, {
   dialect: "postgres",
-  logging: false
+  logging: false,
+  ...(useSsl
+    ? { dialectOptions: { ssl: { require: true, rejectUnauthorized: false } } }
+    : {})
 });
 
 const Admin = require("./Admin")(sequelize, DataTypes);

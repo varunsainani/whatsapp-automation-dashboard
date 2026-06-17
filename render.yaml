@@ -1,0 +1,36 @@
+# Render blueprint: provisions the backend API + a free Postgres database.
+# In Render: New > Blueprint > pick this repo. Set ADMIN_PASSWORD when prompted.
+services:
+  - type: web
+    name: whatsapp-dashboard-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: whatsapp-dashboard-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@example.com
+      - key: ADMIN_PASSWORD
+        sync: false # set your own login password in the dashboard
+      - key: WHATSAPP_ENABLED
+        value: "false" # hosted demo runs without a live phone link
+      - key: SEED_SAMPLE_DATA
+        value: "true" # populate demo conversations/leads on first boot
+      - key: DB_SSL
+        value: "false" # internal Render Postgres connection does not need SSL
+      - key: CORS_ORIGIN
+        sync: false # set to your Vercel URL after the frontend is deployed
+
+databases:
+  - name: whatsapp-dashboard-db
+    plan: free

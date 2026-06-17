@@ -85,3 +85,22 @@ All routes except `POST /api/auth/login` require a `Bearer <token>` header.
 | GET POST PUT DELETE   | `/api/flows`                  | Manage flows                  |
 | POST                  | `/api/flows/:id/activate`     | Make a flow the active one    |
 | GET                   | `/api/whatsapp/status`        | WhatsApp connection status    |
+
+## Deployment
+
+The app is split so each half runs on its ideal free host:
+
+- **Backend + Postgres → [Render](https://render.com)** via the `render.yaml`
+  blueprint at the repo root (`New > Blueprint > pick this repo`). It provisions
+  the API and a free Postgres, generates `JWT_SECRET`, and seeds demo data. Set
+  `ADMIN_PASSWORD` when prompted; the hosted demo runs with
+  `WHATSAPP_ENABLED=false`.
+- **Frontend → [Vercel](https://vercel.com)** (root directory `frontend`). Set
+  `NEXT_PUBLIC_API_URL` to the Render API URL.
+
+After the frontend is live, set the backend's `CORS_ORIGIN` to the Vercel URL to
+lock down cross-origin access.
+
+> The WhatsApp/Baileys session lives on disk and does not survive redeploys on
+> free ephemeral hosts, so run the live WhatsApp link locally and keep the
+> hosted instance as a seeded demo.

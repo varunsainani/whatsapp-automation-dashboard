@@ -1,5 +1,6 @@
-# Render blueprint: provisions the backend API + a free Postgres database.
-# In Render: New > Blueprint > pick this repo. Set ADMIN_PASSWORD when prompted.
+# Render blueprint: provisions the backend API. The database is a free Neon
+# Postgres (set DATABASE_URL to your Neon connection string).
+# In Render: New > Blueprint > pick this repo, then set the sync:false values.
 services:
   - type: web
     name: whatsapp-dashboard-api
@@ -13,24 +14,18 @@ services:
       - key: NODE_VERSION
         value: "20"
       - key: DATABASE_URL
-        fromDatabase:
-          name: whatsapp-dashboard-db
-          property: connectionString
+        sync: false # paste your Neon connection string
+      - key: DB_SSL
+        value: "true" # Neon requires SSL
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_EMAIL
         value: admin@example.com
       - key: ADMIN_PASSWORD
-        sync: false # set your own login password in the dashboard
+        sync: false # set your own login password
       - key: WHATSAPP_ENABLED
         value: "false" # hosted demo runs without a live phone link
       - key: SEED_SAMPLE_DATA
         value: "true" # populate demo conversations/leads on first boot
-      - key: DB_SSL
-        value: "false" # internal Render Postgres connection does not need SSL
       - key: CORS_ORIGIN
         sync: false # set to your Vercel URL after the frontend is deployed
-
-databases:
-  - name: whatsapp-dashboard-db
-    plan: free

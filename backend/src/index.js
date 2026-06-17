@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 
 const routes = require("./routes");
+const errorHandler = require("./middleware/errorHandler");
 const { sequelize } = require("./models");
 const { initSocket } = require("./socket");
 const seedAdmin = require("./seed/admin");
@@ -21,6 +22,9 @@ app.use(routes);
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+// Error responder — must be registered after the routes.
+app.use(errorHandler);
 
 const server = http.createServer(app);
 const io = initSocket(server);

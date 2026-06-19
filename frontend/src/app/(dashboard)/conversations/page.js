@@ -213,8 +213,12 @@ export default function ConversationsPage() {
 
   return (
     <div className="flex h-full">
-      {/* List */}
-      <div className="flex w-80 flex-col border-r border-slate-200 bg-white">
+      {/* List — full width on mobile; hidden once a chat is open (back button returns) */}
+      <div
+        className={`${
+          selectedId ? "hidden lg:flex" : "flex"
+        } w-full flex-col border-r border-slate-200 bg-white lg:w-80`}
+      >
         <div className="space-y-2 border-b border-slate-200 p-3">
           <input
             value={q}
@@ -308,24 +312,38 @@ export default function ConversationsPage() {
         ) : null}
       </div>
 
-      {/* Detail */}
-      <div className="flex flex-1 flex-col bg-slate-50">
+      {/* Detail — full width on mobile, shown only when a chat is selected */}
+      <div
+        className={`${selectedId ? "flex" : "hidden lg:flex"} flex-1 flex-col bg-slate-50`}
+      >
         {!detail ? (
           <div className="flex flex-1 items-center justify-center text-slate-400">
             Select a conversation to view the log
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-              <div>
-                <h3 className="font-semibold">
-                  {detail.contact?.name || detail.contact?.phone_number || "Unknown"}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {detail.contact?.phone_number} · step: {detail.current_step ?? "—"}
-                </p>
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedId(null);
+                    setDetail(null);
+                  }}
+                  className="-ml-1 shrink-0 rounded-lg p-1 text-lg text-slate-500 hover:bg-slate-100 lg:hidden"
+                  aria-label="Back to list"
+                >
+                  ←
+                </button>
+                <div className="min-w-0">
+                  <h3 className="truncate font-semibold">
+                    {detail.contact?.name || detail.contact?.phone_number || "Unknown"}
+                  </h3>
+                  <p className="truncate text-xs text-slate-500">
+                    {detail.contact?.phone_number} · step: {detail.current_step ?? "—"}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <StatusBadge status={detail.status} />
                 <button
                   onClick={toggleBot}

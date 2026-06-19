@@ -130,8 +130,8 @@ export default function FlowsPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-8">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold">Conversation Flows</h2>
           <p className="text-sm text-slate-500">

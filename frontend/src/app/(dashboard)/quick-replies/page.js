@@ -80,7 +80,7 @@ export default function QuickRepliesPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
       <h2 className="mb-1 text-2xl font-semibold">Quick Replies</h2>
       <p className="mb-6 text-sm text-slate-500">
         Short labelled responses agents can fire with one tap.

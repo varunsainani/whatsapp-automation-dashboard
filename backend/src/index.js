@@ -1,11 +1,8 @@
 require("dotenv").config();
 
 const http = require("http");
-const express = require("express");
-const cors = require("cors");
 
-const routes = require("./routes");
-const errorHandler = require("./middleware/errorHandler");
+const createApp = require("./app");
 const { sequelize } = require("./models");
 const { initSocket } = require("./socket");
 const seedAdmin = require("./seed/admin");
@@ -13,23 +10,12 @@ const seedFlow = require("./seed/flow");
 const seedSample = require("./seed/sample");
 const whatsapp = require("./whatsapp/baileys");
 
-const app = express();
+const app = createApp();
 const PORT = process.env.PORT || 3000;
-// Lock CORS to the deployed frontend in production via CORS_ORIGIN; defaults to
-// "*" for local development.
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
-app.use(cors({ origin: CORS_ORIGIN }));
-app.use(express.json());
-app.use(routes);
-
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-// Error responder — must be registered after the routes.
-app.use(errorHandler);
-
+// Long-lived server: attach the realtime + WhatsApp transports that only make
+// sense when a persistent process is running. (The serverless deployment uses
+// api/index.js, which skips all of this and degrades to REST + polling.)
 const server = http.createServer(app);
 const io = initSocket(server);
 app.set("io", io);

@@ -2,42 +2,54 @@
 
 import { useEffect, useState } from "react";
 import { getWhatsAppStatus } from "@/lib/api";
-import { getSocket } from "@/lib/socket";
 
-// Live WhatsApp connection pill. Reads the initial status from the API, then
-// updates in real time from the "whatsapp:status" Socket.IO event.
+const POLL_MS = 15000;
+
+// WhatsApp connection pill. Polls the status endpoint (the serverless backend
+// has no WebSocket to push updates). When the WhatsApp client is intentionally
+// disabled — as on the hosted demo — it shows a neutral "Demo mode" badge
+// rather than an alarming red "disconnected".
 export default function ConnectionStatus() {
   const [state, setState] = useState({
     loading: true,
+    enabled: true,
     connected: false,
     hasQR: false
   });
 
   useEffect(() => {
     let active = true;
-    getWhatsAppStatus()
-      .then((s) => {
-        if (active) setState({ loading: false, ...s });
-      })
-      .catch(() => {
-        if (active) setState({ loading: false, connected: false, hasQR: false });
-      });
 
-    const socket = getSocket();
-    const onStatus = (s) =>
-      setState({ loading: false, connected: s.connected, hasQR: s.hasQR });
-    socket?.on("whatsapp:status", onStatus);
+    const poll = () =>
+      getWhatsAppStatus()
+        .then((s) => {
+          if (active) setState({ loading: false, ...s });
+        })
+        .catch(() => {
+          if (active)
+            setState({
+              loading: false,
+              enabled: true,
+              connected: false,
+              hasQR: false
+            });
+        });
 
+    poll();
+    const interval = setInterval(poll, POLL_MS);
     return () => {
       active = false;
-      socket?.off("whatsapp:status", onStatus);
+      clearInterval(interval);
     };
   }, []);
 
   let dot = "bg-slate-400";
   let label = "Checking…";
   if (!state.loading) {
-    if (state.connected) {
+    if (state.enabled === false) {
+      dot = "bg-slate-400";
+      label = "Demo mode";
+    } else if (state.connected) {
       dot = "bg-green-500";
       label = "WhatsApp connected";
     } else if (state.hasQR) {

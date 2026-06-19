@@ -10,6 +10,10 @@ const useSsl = process.env.DB_SSL === "true";
 const sequelize = new Sequelize(databaseUrl, {
   dialect: "postgres",
   logging: false,
+  // Keep the pool small: on serverless (Vercel) each warm instance holds its own
+  // pool, so a large max would quickly exhaust the database's connection limit.
+  // min: 0 lets idle instances release connections back to the provider.
+  pool: { max: 2, min: 0, idle: 10000, acquire: 30000 },
   ...(useSsl
     ? { dialectOptions: { ssl: { require: true, rejectUnauthorized: false } } }
     : {})

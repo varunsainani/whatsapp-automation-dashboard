@@ -88,19 +88,53 @@ All routes except `POST /api/auth/login` require a `Bearer <token>` header.
 
 ## Deployment
 
-The app is split so each half runs on its ideal free host:
+Both halves deploy to **[Vercel](https://vercel.com)** (no credit card required),
+with Postgres on **[Neon](https://neon.tech)** (also free, no card). The backend
+runs as a Vercel **serverless function** — the whole Express app is exported from
+`backend/api/index.js` and `backend/vercel.json` routes every request to it.
+Because serverless has no persistent process, the admin panel uses
+short-interval **polling** instead of WebSockets, and the hosted demo runs with
+`WHATSAPP_ENABLED=false`.
 
-- **Backend + Postgres → [Render](https://render.com)** via the `render.yaml`
-  blueprint at the repo root (`New > Blueprint > pick this repo`). It provisions
-  the API and a free Postgres, generates `JWT_SECRET`, and seeds demo data. Set
-  `ADMIN_PASSWORD` when prompted; the hosted demo runs with
-  `WHATSAPP_ENABLED=false`.
-- **Frontend → [Vercel](https://vercel.com)** (root directory `frontend`). Set
-  `NEXT_PUBLIC_API_URL` to the Render API URL.
+### 1. Database (Neon)
 
-After the frontend is live, set the backend's `CORS_ORIGIN` to the Vercel URL to
-lock down cross-origin access.
+Create a free Neon project, copy its connection string, then provision the schema
+and demo data **once**:
 
-> The WhatsApp/Baileys session lives on disk and does not survive redeploys on
-> free ephemeral hosts, so run the live WhatsApp link locally and keep the
-> hosted instance as a seeded demo.
+```bash
+cd backend
+DATABASE_URL="postgres://...neon..." DB_SSL=true SEED_SAMPLE_DATA=true \
+  ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=yourpassword \
+  npm run init-db
+```
+
+The serverless request handler never runs migrations/seeds itself, so cold
+starts stay fast — this script is the one place the schema is created.
+
+### 2. Backend API (Vercel)
+
+Deploy the `backend/` directory (root directory `backend`). Set these
+environment variables in the Vercel project:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | your Neon connection string |
+| `DB_SSL` | `true` |
+| `JWT_SECRET` | a long random string |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | your login (same as step 1) |
+| `WHATSAPP_ENABLED` | `false` |
+| `CORS_ORIGIN` | your frontend URL (fill in after step 3) |
+
+### 3. Frontend (Vercel)
+
+Deploy the `frontend/` directory (zero-config Next.js, root directory
+`frontend`). Set `NEXT_PUBLIC_API_URL` to the backend URL from step 2. Then set
+the backend's `CORS_ORIGIN` to this frontend URL and redeploy the backend to lock
+down cross-origin access.
+
+> The `render.yaml` blueprint is kept as an alternative for hosts that accept a
+> payment card (Render/etc.); the live demo uses the all-Vercel path above.
+
+> The WhatsApp/Baileys session needs a persistent process, so run the live
+> WhatsApp link locally (`WHATSAPP_ENABLED=true`) and keep the hosted instance as
+> a seeded demo.

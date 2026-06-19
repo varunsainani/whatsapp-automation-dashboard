@@ -8,10 +8,13 @@ import {
   sendReply,
   getQuickReplies
 } from "@/lib/api";
-import { getSocket } from "@/lib/socket";
 import { useUI } from "@/components/ui";
 
 const PAGE_SIZE = 15;
+// How often the list + open conversation refresh themselves. The hosted demo
+// runs on serverless (no WebSocket), so near-real-time updates come from
+// short-interval polling instead of Socket.IO pushes.
+const POLL_MS = 4000;
 
 function timeLabel(value) {
   if (!value) return "";
@@ -67,24 +70,43 @@ export default function ConversationsPage() {
     filtersRef.current = { q, status: statusFilter, page };
   }, [q, statusFilter, page]);
 
-  const loadList = useCallback(async () => {
-    const f = filtersRef.current;
-    setLoadingList(true);
+  // silent=true is used by the poll loop so periodic refreshes don't flash the
+  // "Loading…" placeholder or surface transient network errors as toasts.
+  const loadList = useCallback(
+    async (silent = false) => {
+      const f = filtersRef.current;
+      if (!silent) setLoadingList(true);
+      try {
+        const res = await getConversations({
+          q: f.q,
+          status: f.status,
+          page: f.page,
+          limit: PAGE_SIZE
+        });
+        setConversations(res.data);
+        setPagination(res.pagination);
+      } catch (err) {
+        if (!silent) toast(err.message, "error");
+      } finally {
+        if (!silent) setLoadingList(false);
+      }
+    },
+    [toast]
+  );
+
+  // Silently re-fetch the currently open conversation so new inbound/outbound
+  // messages appear without a manual refresh. Guards against races where the
+  // user switches conversations mid-request.
+  const refreshDetail = useCallback(async () => {
+    const id = selectedIdRef.current;
+    if (!id) return;
     try {
-      const res = await getConversations({
-        q: f.q,
-        status: f.status,
-        page: f.page,
-        limit: PAGE_SIZE
-      });
-      setConversations(res.data);
-      setPagination(res.pagination);
-    } catch (err) {
-      toast(err.message, "error");
-    } finally {
-      setLoadingList(false);
+      const fresh = await getConversation(id);
+      if (selectedIdRef.current === fresh.id) setDetail(fresh);
+    } catch {
+      /* ignore transient errors during polling */
     }
-  }, [toast]);
+  }, []);
 
   // Debounced list reload on filter/page changes.
   useEffect(() => {
@@ -92,93 +114,22 @@ export default function ConversationsPage() {
     return () => clearTimeout(t);
   }, [q, statusFilter, page, loadList]);
 
-  // One-time: quick replies + socket listeners.
+  // Quick replies (loaded once).
   useEffect(() => {
     getQuickReplies()
       .then(setQuickReplies)
       .catch(() => setQuickReplies([]));
+  }, []);
 
-    const socket = getSocket();
-    if (!socket) return undefined;
-
-    const onNew = () => loadList();
-
-    const onMessage = (msg) => {
-      setConversations((prev) => {
-        const idx = prev.findIndex((c) => c.id === msg.conversation_id);
-        if (idx === -1) {
-          loadList();
-          return prev;
-        }
-        const updated = {
-          ...prev[idx],
-          last_message: {
-            direction: msg.direction,
-            body: msg.body,
-            timestamp: msg.timestamp
-          },
-          message_count: (prev[idx].message_count || 0) + 1
-        };
-        return [updated, ...prev.filter((_, i) => i !== idx)];
-      });
-
-      if (msg.conversation_id === selectedIdRef.current) {
-        setDetail((prev) =>
-          prev && !prev.messages.some((m) => m.id === msg.id)
-            ? {
-                ...prev,
-                messages: [
-                  ...prev.messages,
-                  {
-                    id: msg.id,
-                    direction: msg.direction,
-                    body: msg.body,
-                    timestamp: msg.timestamp
-                  }
-                ]
-              }
-            : prev
-        );
-      }
-    };
-
-    const onUpdate = (u) => {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === u.id
-            ? {
-                ...c,
-                status: u.status,
-                bot_enabled: u.bot_enabled ?? c.bot_enabled,
-                collected: u.collected ?? c.collected
-              }
-            : c
-        )
-      );
-      if (u.id === selectedIdRef.current) {
-        setDetail((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: u.status,
-                bot_enabled: u.bot_enabled ?? prev.bot_enabled,
-                collected: u.collected ?? prev.collected,
-                current_step: u.current_step ?? prev.current_step
-              }
-            : prev
-        );
-      }
-    };
-
-    socket.on("conversation:new", onNew);
-    socket.on("message:new", onMessage);
-    socket.on("conversation:update", onUpdate);
-    return () => {
-      socket.off("conversation:new", onNew);
-      socket.off("message:new", onMessage);
-      socket.off("conversation:update", onUpdate);
-    };
-  }, [loadList]);
+  // Poll the list and the open conversation so new messages / status changes
+  // surface within a few seconds (the serverless backend has no WebSocket push).
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadList(true);
+      refreshDetail();
+    }, POLL_MS);
+    return () => clearInterval(interval);
+  }, [loadList, refreshDetail]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -231,6 +182,18 @@ export default function ConversationsPage() {
     try {
       const res = await sendReply(detail.id, text);
       setReplyText("");
+      // Append immediately — there's no socket echo on the serverless backend;
+      // the poll loop reconciles the list/detail a moment later.
+      if (res.message) {
+        setDetail((prev) =>
+          prev &&
+          prev.id === detail.id &&
+          !prev.messages.some((m) => m.id === res.message.id)
+            ? { ...prev, messages: [...prev.messages, res.message] }
+            : prev
+        );
+      }
+      loadList(true);
       if (res.delivered === false) {
         toast("Saved — WhatsApp offline, not delivered", "info");
       }

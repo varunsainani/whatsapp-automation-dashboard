@@ -21,9 +21,12 @@ function MessagesChart({ data }) {
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm">
       <h3 className="mb-4 font-semibold">Messages — last 7 days</h3>
-      <div className="flex h-44 items-end gap-3">
+      <div className="flex h-48 items-end gap-3">
         {data.map((d) => (
-          <div key={d.date} className="flex flex-1 flex-col items-center gap-2">
+          <div
+            key={d.date}
+            className="flex h-full flex-1 flex-col items-center gap-2"
+          >
             <span className="text-xs font-medium text-slate-500">{d.count}</span>
             <div className="flex w-full flex-1 items-end">
               <div
